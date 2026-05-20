@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FutStats — Pronosticador estadístico{% endblock %}</title>
+    <meta name="description" content="Pronóstico de partidos de fútbol con modelo Dixon-Coles. Probabilidades de goles, córners, tarjetas y más, validadas con backtest académico.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header>
+        <div class="container nav">
+            <a href="/" class="logo">
+                <span class="logo-dot"></span>
+                <span>FutStats</span>
+            </a>
+            <nav class="nav-links">
+                <a href="/">Partidos</a>
+                <a href="/backtest">Validación</a>
+                <a href="/about">Metodología</a>
+            </nav>
+        </div>
+    </header>
+    
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    
+    <footer>
+        <div class="container">
+            <span>FutStats — Modelo Dixon-Coles · Análisis estadístico, no apuestas</span>
+            <span class="mono">v0.2</span>
+        </div>
+    </footer>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

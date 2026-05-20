@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Metodología — FutStats{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 3rem 0; max-width: 760px;">
+    <h1 style="font-size: 2.2rem; letter-spacing: -0.03em; margin-bottom: 0.6rem;">Metodología</h1>
+    <p style="color: var(--text-dim); margin-bottom: 2rem;">
+        Cómo se construyen las predicciones y por qué este enfoque tiene sustento académico.
+    </p>
+    
+    <div style="color: var(--text-dim); line-height: 1.7;">
+        
+        <h2 style="color: var(--text); margin-top: 2.5rem; margin-bottom: 0.8rem; font-size: 1.3rem;">1. Modelo Dixon-Coles</h2>
+        <p>
+            El motor de predicción para goles, resultado 1X2 y BTTS es el modelo de
+            <strong>Dixon &amp; Coles (1997)</strong>, una extensión del Poisson bivariado
+            independiente que es el estándar de referencia en literatura académica
+            sobre pronóstico de fútbol.
+        </p>
+        <p>
+            Cada equipo tiene un parámetro de <strong>ataque</strong> y otro de
+            <strong>defensa</strong>. La tasa esperada de goles es:
+        </p>
+        <div class="mono" style="padding: 1rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; font-size: 0.88rem; margin: 0.5rem 0 1rem;">
+            λ<sub>local</sub> = exp(α<sub>local</sub> + β<sub>visit</sub> + γ)<br>
+            λ<sub>visit</sub> = exp(α<sub>visit</sub> + β<sub>local</sub>)
+        </div>
+        <p>
+            donde γ es el factor de localía y la probabilidad de cada marcador
+            (x, y) se ajusta con τ(x,y) — la innovación de Dixon-Coles que corrige
+            la subestimación de marcadores bajos (0-0, 1-0, 0-1, 1-1):
+        </p>
+        <div class="mono" style="padding: 1rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; font-size: 0.88rem; margin: 0.5rem 0 1rem;">
+            P(X=x, Y=y) = τ(x,y) · Poisson(x | λ<sub>local</sub>) · Poisson(y | λ<sub>visit</sub>)
+        </div>
+        
+        <h2 style="color: var(--text); margin-top: 2.5rem; margin-bottom: 0.8rem; font-size: 1.3rem;">2. Ponderación temporal</h2>
+        <p>
+            Los partidos más recientes pesan más. Aplicamos un decay exponencial
+            con tasa ξ = 0.0019/día (siguiendo la práctica de Boshnakov, Kharrat &amp;
+            McHale, 2017), de manera que un partido de hace ~365 días pesa la mitad
+            que uno de hoy.
+        </p>
+        
+        <h2 style="color: var(--text); margin-top: 2.5rem; margin-bottom: 0.8rem; font-size: 1.3rem;">3. Estimación de parámetros</h2>
+        <p>
+            Los parámetros (α, β, γ, ρ) se estiman por <strong>máxima verosimilitud</strong>
+            usando L-BFGS-B sobre el histórico ponderado.
+            Constraint: Σα = 0 para identificabilidad del modelo.
+        </p>
+        
+        <h2 style="color: var(--text); margin-top: 2.5rem; margin-bottom: 0.8rem; font-size: 1.3rem;">4. Métricas no-goles</h2>
+        <p>
+            Para córners, tarjetas, faltas y tiros usamos Poisson sobre promedios
+            ponderados por recencia y separados local/visitante. No hay literatura
+            académica tan establecida para estos mercados como para goles.
+        </p>
+        
+        <h2 style="color: var(--text); margin-top: 2.5rem; margin-bottom: 0.8rem; font-size: 1.3rem;">5. Validación (backtest)</h2>
+        <p>
+            El modelo se valida con <strong>walk-forward backtesting</strong>: para
+            cada partido del set de test, re-entrenamos solo con datos anteriores
+            (sin leakage temporal). Reportamos:
+        </p>
+        <ul style="margin-left: 1.5rem; margin-top: 0.5rem; margin-bottom: 1rem;">
+            <li><strong>Accuracy:</strong> % de aciertos en el outcome más probable.</li>
+            <li><strong>Log Loss:</strong> -E[log P(actual)]. Penaliza la sobre-confianza errónea.</li>
+            <li><strong>RPS</strong> (Ranked Probability Score, Epstein 1969): específica
+                para clasificación ordinal. Penaliza más equivocarse "lejos" que "cerca".
+                Recomendada por Constantinou &amp; Fenton (2012) como la métrica más
+                apropiada para fútbol.</li>
+            <li><strong>Brier Score:</strong> error cuadrático medio sobre probabilidades.</li>
+        </ul>
+        <p>
+            Comparamos contra tres <strong>baselines</strong>: random (1/3), home bias
+            (45/28/27, frecuencia global histórica) y promedio observado en el set
+            de entrenamiento.
+        </p>
+        
+        <h2 style="color: var(--text); margin-top: 2.5rem; margin-bottom: 0.8rem; font-size: 1.3rem;">6. Calibración</h2>
+        <p>
+            Más allá del accuracy, evaluamos si las probabilidades están bien
+            calibradas: cuando el modelo predice 70%, ¿el evento ocurre el 70% de
+            las veces? Se grafica probabilidad predicha (binned) vs. frecuencia
+            observada.
+        </p>
+        
+        <h2 style="color: var(--text); margin-top: 2.5rem; margin-bottom: 0.8rem; font-size: 1.3rem;">Limitaciones</h2>
+        <p>
+            El modelo no captura: lesiones puntuales, motivación, factores climáticos,
+            decisiones arbitrales individuales, ni cambios estructurales bruscos
+            (cambio de DT, traspasos clave). Los mejores modelos en literatura
+            académica logran ~52-55% de accuracy en 1X2, por encima del random
+            (33.3%) y del home bias (~45%), pero por debajo del techo teórico
+            impuesto por la aleatoriedad inherente del fútbol.
+        </p>
+        
+        <h2 style="color: var(--text); margin-top: 2.5rem; margin-bottom: 0.8rem; font-size: 1.3rem;">Referencias</h2>
+        <ul style="margin-left: 1.5rem; margin-top: 0.5rem; font-size: 0.92rem;">
+            <li>Dixon, M. J., &amp; Coles, S. G. (1997). Modelling Association Football Scores and Inefficiencies in the Football Betting Market. <em>JRSS Series C, 46</em>(2), 265–280.</li>
+            <li>Epstein, E. S. (1969). A scoring system for probability forecasts of ranked categories. <em>Journal of Applied Meteorology, 8</em>(6), 985–987.</li>
+            <li>Constantinou, A. C., &amp; Fenton, N. E. (2012). Solving the problem of inadequate scoring rules for assessing probabilistic football forecasting models. <em>Journal of Quantitative Analysis in Sports, 8</em>(1).</li>
+            <li>Boshnakov, G., Kharrat, T., &amp; McHale, I. G. (2017). A bivariate Weibull count model for forecasting association football scores. <em>International Journal of Forecasting, 33</em>(2), 458–466.</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

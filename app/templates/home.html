@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="hero">
+    <div class="container">
+        <h1>Probabilidades <span class="accent">validadas</span><br>partido por partido.</h1>
+        <p>Pronóstico estadístico basado en el modelo Dixon-Coles (1997), el estándar académico para fútbol. Validado contra miles de partidos históricos.</p>
+        
+        <div class="search-wrap">
+            <div class="search-input-wrap">
+                <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input
+                    id="search-input"
+                    class="search-input"
+                    type="text"
+                    autocomplete="off"
+                    placeholder="Buscá un equipo o partido — ej: &quot;Boca vs River&quot;"
+                    spellcheck="false"
+                >
+            </div>
+            <div id="search-results" class="search-results"></div>
+            <div class="search-hint">
+                Probá: <span class="mono">river</span> ·
+                <span class="mono">real madrid vs barcelona</span> ·
+                <span class="mono">boca</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="container">
+    <div class="filters">
+        <a href="/" class="filter-chip {% if not current_league %}active{% endif %}">Todas</a>
+        {% for l in leagues %}
+            <a href="/?league={{ l.id }}" class="filter-chip {% if current_league == l.id %}active{% endif %}">
+                {{ l.name }}
+            </a>
+        {% endfor %}
+    </div>
+    
+    {% if by_date %}
+        {% for date_str, matches in by_date.items() %}
+            <div class="date-section">
+                <div class="date-header">
+                    <span>{{ date_str }}</span>
+                    <span class="mono">{{ matches|length }} partidos</span>
+                </div>
+                <div class="match-list">
+                    {% for m in matches %}
+                        <a href="/match/{{ m.id }}" class="match-card">
+                            <div class="match-time mono">{{ m.date.strftime('%H:%M') }}</div>
+                            <div class="match-teams">
+                                <div class="team-row">
+                                    {% if m.home_team.logo %}<img src="{{ m.home_team.logo }}" alt="" class="team-logo">{% endif %}
+                                    <span>{{ m.home_team.name }}</span>
+                                </div>
+                                <div class="team-row">
+                                    {% if m.away_team.logo %}<img src="{{ m.away_team.logo }}" alt="" class="team-logo">{% endif %}
+                                    <span>{{ m.away_team.name }}</span>
+                                </div>
+                            </div>
+                            <div class="match-league">{% if m.league %}{{ m.league.name }}{% endif %}</div>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty">
+            <h3>Sin partidos cargados todavía</h3>
+            <p>Cargá datos: <span class="mono">python -m scripts.load_csv data/X.csv 39 2023</span></p>
+            <p style="margin-top: 0.5rem;">o desde API-Football: <span class="mono">POST /api/admin/seed-leagues</span> → <span class="mono">POST /api/admin/sync</span></p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/search.js"></script>
+{% endblock %}

@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}{{ fixture.home_team.name }} vs {{ fixture.away_team.name }} — FutStats{% endblock %}
+
+{% block content %}
+<section class="match-header">
+    <div class="container">
+        <div class="match-meta">
+            <span>{{ fixture.date.strftime('%d %b %Y · %H:%M UTC') }}</span>
+            {% if fixture.league %}<span>· {{ fixture.league.name }}</span>{% endif %}
+            {% if fixture.referee %}<span>· Árbitro: {{ fixture.referee }}</span>{% endif %}
+        </div>
+        <div class="versus">
+            <div class="versus-team">
+                {% if fixture.home_team.logo %}
+                    <div class="logo"><img src="{{ fixture.home_team.logo }}" alt=""></div>
+                {% endif %}
+                <h2>{{ fixture.home_team.name }}</h2>
+            </div>
+            <div class="versus-vs">VS</div>
+            <div class="versus-team">
+                {% if fixture.away_team.logo %}
+                    <div class="logo"><img src="{{ fixture.away_team.logo }}" alt=""></div>
+                {% endif %}
+                <h2>{{ fixture.away_team.name }}</h2>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="container predictions">
+    {% if pred %}
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <div class="section-title" style="margin-bottom: 0.3rem;">Análisis basado en</div>
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 700;">
+                    {{ pred.matches_analyzed }} partidos · {{ pred.model }}
+                </div>
+            </div>
+            <div class="badge-row">
+                <span class="model-badge">{{ pred.model }}</span>
+                <span class="confidence-badge {{ pred.confidence }}">Confianza {{ pred.confidence }}</span>
+            </div>
+        </div>
+        
+        <div class="section-title">Resultado (1X2)</div>
+        <div class="result-grid">
+            <div class="result-box">
+                <div class="label">Gana local</div>
+                <div class="prob mono">{{ (pred.prob_home_win * 100)|round(1) }}<span class="pct">%</span></div>
+                <div class="bar" style="width: {{ (pred.prob_home_win * 100)|round(0) }}%"></div>
+            </div>
+            <div class="result-box">
+                <div class="label">Empate</div>
+                <div class="prob mono">{{ (pred.prob_draw * 100)|round(1) }}<span class="pct">%</span></div>
+                <div class="bar" style="width: {{ (pred.prob_draw * 100)|round(0) }}%"></div>
+            </div>
+            <div class="result-box">
+                <div class="label">Gana visitante</div>
+                <div class="prob mono">{{ (pred.prob_away_win * 100)|round(1) }}<span class="pct">%</span></div>
+                <div class="bar" style="width: {{ (pred.prob_away_win * 100)|round(0) }}%"></div>
+            </div>
+        </div>
+        
+        <div class="section-title">Resultados más probables</div>
+        <div class="scores-list" style="margin-bottom: 2rem;">
+            {% for h, a, p in pred.most_likely_scores %}
+                <div class="score-pill">
+                    <div class="score">{{ h }} - {{ a }}</div>
+                    <div class="pct">{{ (p * 100)|round(1) }}%</div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <div class="section-title">Ambos equipos marcan</div>
+        <div class="result-grid" style="grid-template-columns: 1fr 1fr;">
+            <div class="result-box">
+                <div class="label">Sí</div>
+                <div class="prob mono">{{ (pred.prob_btts_yes * 100)|round(1) }}<span class="pct">%</span></div>
+                <div class="bar" style="width: {{ (pred.prob_btts_yes * 100)|round(0) }}%"></div>
+            </div>
+            <div class="result-box">
+                <div class="label">No</div>
+                <div class="prob mono">{{ (pred.prob_btts_no * 100)|round(1) }}<span class="pct">%</span></div>
+                <div class="bar" style="width: {{ (pred.prob_btts_no * 100)|round(0) }}%"></div>
+            </div>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-block">
+                <div class="stat-block-header">
+                    <div class="stat-block-title">⚽ Goles</div>
+                    <div class="stat-expected">Esperado: {{ (pred.expected_goals_home + pred.expected_goals_away)|round(2) }}</div>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-faded); margin-bottom: 0.8rem;">
+                    {{ pred.home_team }}: {{ pred.expected_goals_home }} · {{ pred.away_team }}: {{ pred.expected_goals_away }}
+                </div>
+                {% for line, prob in pred.goals_over.items() %}
+                    <div class="line-row">
+                        <div class="line-label">Over {{ line }}</div>
+                        <div class="line-bar">
+                            <div class="line-bar-fill {% if prob < 0.4 %}low{% elif prob < 0.6 %}med{% endif %}" style="width: {{ (prob * 100)|round(0) }}%"></div>
+                        </div>
+                        <div class="line-prob">{{ (prob * 100)|round(1) }}%</div>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <div class="stat-block">
+                <div class="stat-block-header">
+                    <div class="stat-block-title">🚩 Córners</div>
+                    <div class="stat-expected">Esperado: {{ pred.expected_corners }}</div>
+                </div>
+                {% for line, prob in pred.corners_over.items() %}
+                    <div class="line-row">
+                        <div class="line-label">Over {{ line }}</div>
+                        <div class="line-bar">
+                            <div class="line-bar-fill {% if prob < 0.4 %}low{% elif prob < 0.6 %}med{% endif %}" style="width: {{ (prob * 100)|round(0) }}%"></div>
+                        </div>
+                        <div class="line-prob">{{ (prob * 100)|round(1) }}%</div>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <div class="stat-block">
+                <div class="stat-block-header">
+                    <div class="stat-block-title">🟨 Tarjetas</div>
+                    <div class="stat-expected">Esperado: {{ pred.expected_cards }}</div>
+                </div>
+                {% for line, prob in pred.cards_over.items() %}
+                    <div class="line-row">
+                        <div class="line-label">Over {{ line }}</div>
+                        <div class="line-bar">
+                            <div class="line-bar-fill {% if prob < 0.4 %}low{% elif prob < 0.6 %}med{% endif %}" style="width: {{ (prob * 100)|round(0) }}%"></div>
+                        </div>
+                        <div class="line-prob">{{ (prob * 100)|round(1) }}%</div>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <div class="stat-block">
+                <div class="stat-block-header">
+                    <div class="stat-block-title">🦵 Faltas</div>
+                    <div class="stat-expected">Esperado: {{ pred.expected_fouls }}</div>
+                </div>
+                {% for line, prob in pred.fouls_over.items() %}
+                    <div class="line-row">
+                        <div class="line-label">Over {{ line }}</div>
+                        <div class="line-bar">
+                            <div class="line-bar-fill {% if prob < 0.4 %}low{% elif prob < 0.6 %}med{% endif %}" style="width: {{ (prob * 100)|round(0) }}%"></div>
+                        </div>
+                        <div class="line-prob">{{ (prob * 100)|round(1) }}%</div>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <div class="stat-block">
+                <div class="stat-block-header">
+                    <div class="stat-block-title">🎯 Tiros</div>
+                    <div class="stat-expected">Esperado: {{ pred.expected_shots }}</div>
+                </div>
+                {% for line, prob in pred.shots_over.items() %}
+                    <div class="line-row">
+                        <div class="line-label">Over {{ line }}</div>
+                        <div class="line-bar">
+                            <div class="line-bar-fill {% if prob < 0.4 %}low{% elif prob < 0.6 %}med{% endif %}" style="width: {{ (prob * 100)|round(0) }}%"></div>
+                        </div>
+                        <div class="line-prob">{{ (prob * 100)|round(1) }}%</div>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <div class="stat-block">
+                <div class="stat-block-header">
+                    <div class="stat-block-title">⚪ Posesión</div>
+                </div>
+                <div class="possession-bar" style="margin-top: 1rem;">
+                    <div class="possession-home" style="width: {{ pred.possession_home }}%;">{{ pred.possession_home }}%</div>
+                    <div class="possession-away" style="width: {{ pred.possession_away }}%;">{{ pred.possession_away }}%</div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 0.6rem; font-size: 0.75rem; color: var(--text-dim);">
+                    <span>{{ pred.home_team }}</span>
+                    <span>{{ pred.away_team }}</span>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="empty">
+            <h3>Sin datos suficientes</h3>
+            <p>Necesitamos histórico de ambos equipos para predecir. Ejecutá el sync o cargá más datos via CSV.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

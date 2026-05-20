@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Validación del modelo — FutStats{% endblock %}
+
+{% block content %}
+<section class="hero" style="padding: 3rem 0 2rem;">
+    <div class="container">
+        <h1 style="font-size: 2.2rem;">Validación <span class="accent">empírica</span></h1>
+        <p>Cómo se comporta el modelo Dixon-Coles vs. baselines, sobre datos históricos reales.</p>
+    </div>
+</section>
+
+<div class="container" style="padding: 2.5rem 0;">
+{% if results %}
+    {% set cfg = results.config %}
+    {% set models = results.models %}
+    
+    <div class="section-title">Configuración del backtest</div>
+    <div class="stat-block" style="margin-bottom: 2rem;">
+        <table class="backtest-table">
+            <tr><td>Período</td><td>{{ cfg.start_date[:10] }} → {{ cfg.end_date[:10] }}</td></tr>
+            <tr><td>Partidos testeados</td><td>{{ cfg.n_test_fixtures }}</td></tr>
+            <tr><td>Re-ajuste cada</td><td>{{ cfg.refit_every_days }} días</td></tr>
+            <tr><td>Mín. training</td><td>{{ cfg.min_training_matches }} partidos</td></tr>
+            <tr><td>Decay (ξ)</td><td>{{ cfg.xi }}</td></tr>
+        </table>
+    </div>
+    
+    <div class="section-title">Comparación de modelos — Resultado 1X2</div>
+    <table class="backtest-table">
+        <thead>
+            <tr>
+                <th>Modelo</th>
+                <th>N</th>
+                <th>Accuracy</th>
+                <th>Log Loss ↓</th>
+                <th>RPS ↓</th>
+                <th>Brier ↓</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set dc = models.dixon_coles %}
+            {% if dc.n_predictions %}
+                <tr class="winner">
+                    <td>{{ dc.name }}</td>
+                    <td>{{ dc.n_predictions }}</td>
+                    <td>{{ (dc.accuracy_1x2 * 100)|round(2) }}%</td>
+                    <td>{{ dc.log_loss_1x2 }}</td>
+                    <td>{{ dc.rps_1x2 }}</td>
+                    <td>{{ dc.brier_1x2 }}</td>
+                </tr>
+            {% endif %}
+            {% for key in ['random', 'home_bias', 'league_avg'] %}
+                {% set m = models[key] %}
+                {% if m.n_predictions %}
+                    <tr>
+                        <td>{{ m.name }}</td>
+                        <td>{{ m.n_predictions }}</td>
+                        <td>{{ (m.accuracy_1x2 * 100)|round(2) }}%</td>
+                        <td>{{ m.log_loss_1x2 }}</td>
+                        <td>{{ m.rps_1x2 }}</td>
+                        <td>{{ m.brier_1x2 }}</td>
+                    </tr>
+                {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+    <div style="color: var(--text-faded); font-size: 0.8rem; margin: 1rem 0 3rem;">
+        ↓ = menor es mejor. RPS y Log Loss son las métricas más usadas en literatura académica de pronóstico deportivo (Constantinou & Fenton, 2012).
+    </div>
+    
+    {% if dc.btts and dc.btts.n %}
+        <div class="section-title">Mercados binarios</div>
+        <table class="backtest-table" style="margin-bottom: 2rem;">
+            <thead>
+                <tr><th>Mercado</th><th>N</th><th>Accuracy</th><th>Log Loss ↓</th><th>Brier ↓</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Ambos marcan (BTTS)</td>
+                    <td>{{ dc.btts.n }}</td>
+                    <td>{{ (dc.btts.accuracy * 100)|round(2) }}%</td>
+                    <td>{{ dc.btts.log_loss }}</td>
+                    <td>{{ dc.btts.brier }}</td>
+                </tr>
+                <tr>
+                    <td>Over 2.5 goles</td>
+                    <td>{{ dc.over_2_5.n }}</td>
+                    <td>{{ (dc.over_2_5.accuracy * 100)|round(2) }}%</td>
+                    <td>{{ dc.over_2_5.log_loss }}</td>
+                    <td>{{ dc.over_2_5.brier }}</td>
+                </tr>
+            </tbody>
+        </table>
+    {% endif %}
+    
+    {% if dc.btts and dc.btts.calibration %}
+        <div class="section-title">Calibración de probabilidades</div>
+        <p style="color: var(--text-dim); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            Un modelo bien calibrado predice 70% y el evento ocurre el 70% de las veces.
+            <span style="color: var(--text-dim);">▮</span> = predicción ·
+            <span style="color: var(--accent);">▮</span> = observado
+        </p>
+        <div class="cal-grid">
+            <div class="cal-chart">
+                <h4>BTTS — Calibración</h4>
+                {% for bin_val, info in dc.btts.calibration.items() %}
+                    <div class="cal-row">
+                        <span class="pred">{{ (info.predicted * 100)|round(0) }}%</span>
+                        <div class="cal-bar-container">
+                            <div class="cal-bar-marker-pred" style="left: {{ (info.predicted * 100)|round(0) }}%"></div>
+                            <div class="cal-bar-marker-obs" style="left: {{ (info.observed * 100)|round(0) }}%"></div>
+                        </div>
+                        <span class="obs">{{ (info.observed * 100)|round(1) }}%</span>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <div class="cal-chart">
+                <h4>Over 2.5 — Calibración</h4>
+                {% for bin_val, info in dc.over_2_5.calibration.items() %}
+                    <div class="cal-row">
+                        <span class="pred">{{ (info.predicted * 100)|round(0) }}%</span>
+                        <div class="cal-bar-container">
+                            <div class="cal-bar-marker-pred" style="left: {{ (info.predicted * 100)|round(0) }}%"></div>
+                            <div class="cal-bar-marker-obs" style="left: {{ (info.observed * 100)|round(0) }}%"></div>
+                        </div>
+                        <span class="obs">{{ (info.observed * 100)|round(1) }}%</span>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+{% else %}
+    <div class="empty">
+        <h3>No hay backtest todavía</h3>
+        <p>Corré: <span class="mono">python -m scripts.run_backtest --start 2023-08-01 --end 2024-05-31</span></p>
+    </div>
+{% endif %}
+</div>
+{% endblock %}
