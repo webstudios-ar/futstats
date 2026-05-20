@@ -1,4 +1,4 @@
-# FutStats ⚽ — Pronosticador estadístico de fútbol
+# FutStats ⚽ — Pronosticador estadístico de fútbol 
 
 Pronóstico de partidos de fútbol basado en el modelo **Dixon-Coles (1997)**, el estándar académico de referencia para predicción de scores. Valida sus predicciones con backtest walk-forward sobre datos históricos.
 
